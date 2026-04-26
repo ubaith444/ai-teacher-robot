@@ -95,7 +95,9 @@ export default function DashboardOverview() {
     fetchData();
 
     // Robot WebSocket Setup
-    const socket = new WebSocket(`ws://${window.location.hostname}:8000/api/robot/ws/control`);
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname === 'localhost' ? 'localhost:8000' : window.location.host;
+    const socket = new WebSocket(`${protocol}//${host}/api/robot/ws/control`);
     socket.onopen = () => console.log("Robot WS Connected");
     socket.onmessage = (e) => setRobotStatus(JSON.parse(e.data));
     socket.onclose = () => console.log("Robot WS Disconnected");

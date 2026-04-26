@@ -1,4 +1,6 @@
-export const API_BASE_URL = 'http://localhost:8000';
+export const API_BASE_URL = window.location.hostname === 'localhost' 
+  ? 'http://localhost:8000' 
+  : `${window.location.protocol}//${window.location.host}/api`;
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
   const token = localStorage.getItem('zoro_token');
