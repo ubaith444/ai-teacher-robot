@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoro Robot | Command Center</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --accent: #10b981;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15), transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.1), transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── Layout ── */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+            display: grid;
+            grid-template-columns: 350px 1fr 350px;
+            gap: 2rem;
+            height: calc(100vh - 4rem);
+        }
+
+        header {
+            grid-column: 1 / -1;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            padding: 1rem 2rem;
+            border-radius: 1rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            background: linear-gradient(to right, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .system-status {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #10b981;
+            box-shadow: 0 0 10px #10b981;
+        }
+
+        /* ── Sidebars & Main ── */
+        .sidebar, .main-view, .right-bar {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.05);
+            padding: 1.5rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+            overflow-y: auto;
+        }
+
+        h2 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 1rem;
+        }
+
+        /* ── Motor Control (Joystick) ── */
+        .control-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+            max-width: 200px;
+            margin: 0 auto;
+        }
+
+        .btn-ctrl {
+            aspect-ratio: 1;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 0.75rem;
+            color: white;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-ctrl:hover {
+            background: var(--primary);
+            box-shadow: 0 0 20px var(--primary-glow);
+            transform: scale(1.05);
+        }
+
+        .btn-ctrl:active {
+            transform: scale(0.95);
+        }
+
+        .btn-stop {
+            grid-column: 2;
+            background: #ef4444;
+        }
+
+        /* ── Modes ── */
+        .mode-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .mode-item {
+            padding: 1rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 1rem;
+            border: 1px solid transparent;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mode-item.active {
+            background: rgba(99, 102, 241, 0.1);
+            border-color: var(--primary);
+            box-shadow: inset 0 0 10px rgba(99, 102, 241, 0.2);
+        }
+
+        .mode-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+        }
+
+        /* ── Main Feed ── */
+        .video-box {
+            flex-grow: 1;
+            background: #000;
+            border-radius: 1rem;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .video-placeholder {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: var(--text-dim);
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, #000, #1e293b, #000);
+            background-size: 200% 100%;
+            animation: move-shimmer 2s infinite linear;
+        }
+
+        @keyframes move-shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+
+        /* ── Stats ── */
+        .stat-card {
+            padding: 1.25rem;
+            background: rgba(255,255,255,0.03);
+            border-radius: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .stat-val {
+            font-size: 1.75rem;
+            font-weight: 800;
+            color: var(--accent);
+        }
+
+        .stat-label {
+            font-size: 0.8rem;
+            color: var(--text-dim);
+        }
+
+        /* ── Bottom Section (Console) ── */
+        .console {
+            height: 150px;
+            background: rgba(0,0,0,0.4);
+            border-radius: 1rem;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            overflow-y: auto;
+            color: #4ade80;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .log-entry { margin-bottom: 0.25rem; }
+        .log-time { color: var(--text-dim); }
+
+        /* ── Forms ── */
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            color: white;
+            outline: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 15px var(--primary-glow);
+            filter: brightness(1.1);
+        }
+
+        /* ── Transitions ── */
+        .fade-in { animation: fadeIn 0.5s ease-out; }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container fade-in">
+        <header>
+            <div class="logo">ZORO ROBOT COMMAND</div>
+            <div class="system-status">
+                <span class="status-dot"></span>
+                <span id="conn-status">SYSTEM ONLINE</span>
+            </div>
+        </header>
+
+        <!-- Sidebar: Modes & Navigation -->
+        <aside class="sidebar">
+            <section>
+                <h2>Operating Mode</h2>
+                <div class="mode-list">
+                    <div class="mode-item active" id="mode-idle" onclick="setMode('idle')">
+                        <div class="mode-icon">💤</div>
+                        <div>
+                            <div style="font-weight:600">Idle</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim)">Conserving energy</div>
+                        </div>
+                    </div>
+                    <div class="mode-item" id="mode-attendance" onclick="setMode('attendance')">
+                        <div class="mode-icon">📷</div>
+                        <div>
+                            <div style="font-weight:600">Attendance</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim)">Scanning students</div>
+                        </div>
+                    </div>
+                    <div class="mode-item" id="mode-teaching" onclick="setMode('teaching')">
+                        <div class="mode-icon">🎓</div>
+                        <div>
+                            <div style="font-weight:600">Teaching</div>
+                            <div style="font-size:0.75rem; color:var(--text-dim)">Interactive lesson</div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section>
+                <h2>Enrollment Config</h2>
+                <div class="input-group">
+                    <label style="font-size: 0.7rem; color: var(--text-dim)">DRIVE FOLDER URL</label>
+                    <input type="text" id="drive-url" value="https://drive.google.com/drive/folders/1BrRZuPCjDyFhywwGlI51YrcsdRre1pmg">
+                </div>
+                <div class="input-group" style="margin-top: 0.5rem">
+                    <label style="font-size: 0.7rem; color: var(--text-dim)">CLASS SECTION</label>
+                    <input type="text" id="class-section" value="10-A">
+                </div>
+                <button class="btn-primary" style="margin-top: 1rem" onclick="bulkEnroll()">🚀 Bulk Enroll Students</button>
+                <button class="btn-primary" style="margin-top: 0.5rem; background: var(--accent);" onclick="window.open('/webcam.html', '_blank')">📷 Use Laptop Webcam</button>
+            </section>
+        </aside>
+
+        <!-- Main View: Camera & Console -->
+        <main class="main-view">
+            <div class="video-box shimmer">
+                <div class="video-placeholder">
+                    <div style="font-size:3rem">📹</div>
+                    <div>LIVE VISION STREAM</div>
+                    <div style="font-size:0.8rem; margin-top: 1rem">Waiting for camera handshake...</div>
+                </div>
+            </div>
+
+            <div class="console" id="console">
+                <div class="log-entry">
+                    <span class="log-time">[20:16:45]</span> System kernel initialized.
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">[20:16:46]</span> Motor drivers linked at 1000Hz.
+                </div>
+                <div class="log-entry">
+                    <span class="log-time">[20:16:47]</span> Face detection model (LBPH) loaded.
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Bar: Motion & Stats -->
+        <aside class="right-bar">
+            <section>
+                <h2>Motion Control</h2>
+                <div class="control-grid">
+                    <div></div>
+                    <button class="btn-ctrl" onmousedown="drive('forward')" onmouseup="drive('stop')">↑</button>
+                    <div></div>
+                    <button class="btn-ctrl" onmousedown="drive('left')" onmouseup="drive('stop')">←</button>
+                    <button class="btn-ctrl btn-stop" onclick="drive('stop')">■</button>
+                    <button class="btn-ctrl" onmousedown="drive('right')" onmouseup="drive('stop')">→</button>
+                    <div></div>
+                    <button class="btn-ctrl" onmousedown="drive('backward')" onmouseup="drive('stop')">↓</button>
+                    <div></div>
+                </div>
+                <div style="text-align:center; margin-top: 1rem; font-size: 0.8rem; color: var(--text-dim)">
+                    Use Arrows or WASD keys
+                </div>
+            </section>
+
+            <section>
+                <h2>Session Analytics</h2>
+                <div class="stat-card">
+                    <div class="stat-val" id="stat-scans">0</div>
+                    <div class="stat-label">Total Scans</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-val" id="stat-attendance">0%</div>
+                    <div class="stat-label">Attendance Rate</div>
+                </div>
+            </section>
+        </aside>
+    </div>
+
+    <script>
+        const wsUrl = `ws://${window.location.host}/api/robot/ws/control`;
+        let ws = null;
+        let consoleEl = document.getElementById('console');
+
+        function log(msg) {
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            const time = new Date().toLocaleTimeString();
+            entry.innerHTML = `<span class="log-time">[${time}]</span> ${msg}`;
+            consoleEl.appendChild(entry);
+            consoleEl.scrollTop = consoleEl.scrollHeight;
+        }
+
+        function connect() {
+            log("Attempting WebSocket connection...");
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = () => {
+                log("Control link established.");
+                document.getElementById('conn-status').innerText = "LINK ESTABLISHED";
+            };
+
+            ws.onclose = () => {
+                log("Control link lost. Retrying in 3s...");
+                document.getElementById('conn-status').innerText = "LINK DISCONNECTED";
+                setTimeout(connect, 3000);
+            };
+
+            ws.onerror = (err) => log("WS Error: " + err);
+        }
+
+        function drive(direction) {
+            if (!ws || ws.readyState !== WebSocket.OPEN) return;
+            log(`Command: ${direction.toUpperCase()}`);
+            ws.send(JSON.stringify({ action: direction, speed: 80 }));
+        }
+
+        async function setMode(mode) {
+            log(`Switching to ${mode.toUpperCase()} mode...`);
+            try {
+                const resp = await fetch('/api/mode/switch', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: mode })
+                });
+                const data = await resp.json();
+                
+                // Update UI active state
+                document.querySelectorAll('.mode-item').forEach(el => el.classList.remove('active'));
+                document.getElementById(`mode-${mode}`).classList.add('active');
+                
+                log(`System state: ${data.state.mode}`);
+            } catch (e) {
+                log(`Error: ${e.message}`);
+            }
+        }
+
+        async function bulkEnroll() {
+            const folderUrl = document.getElementById('drive-url').value;
+            const classSection = document.getElementById('class-section').value;
+
+            log(`Starting bulk enrollment for ${classSection}...`);
+            try {
+                const resp = await fetch('/students/enroll/from-drive', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        folder_url: folderUrl,
+                        class_section: classSection,
+                        dry_run: false
+                    })
+                });
+                const data = await resp.json();
+                
+                if (resp.ok) {
+                    log(`Success! Enrolled ${data.enrolled} students.`);
+                    if (data.failed > 0) log(`Warning: ${data.failed} students failed.`);
+                } else {
+                    log(`Failed: ${data.detail || 'Unknown error'}`);
+                }
+            } catch (e) {
+                log(`Enrollment failed: ${e.message}`);
+            }
+        }
+
+        // Keyboard controls
+        window.addEventListener('keydown', (e) => {
+            if (e.repeat) return;
+            const key = e.key.toLowerCase();
+            if (key === 'w' || key === 'arrowup') drive('forward');
+            if (key === 's' || key === 'arrowdown') drive('backward');
+            if (key === 'a' || key === 'arrowleft') drive('left');
+            if (key === 'd' || key === 'arrowright') drive('right');
+            if (key === ' ') drive('stop');
+        });
+
+        window.addEventListener('keyup', (e) => {
+            const key = e.key.toLowerCase();
+            if (['w', 's', 'a', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(key)) {
+                drive('stop');
+            }
+        });
+
+        // Start
+        connect();
+    </script>
+</body>
+</html>
+

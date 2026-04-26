@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.env
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+.npm/
+
+# Database & Data
+*.db
+*.sqlite
+data/*.wav
+data/*.jpg
+data/lbph_model.yml
+data/label_map.json
+backend/vector_db/
+backend/data/
+backend/models/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store

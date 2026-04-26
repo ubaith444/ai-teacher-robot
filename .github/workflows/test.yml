@@ -1,0 +1,44 @@
+name: AI Classroom Testing Pipeline
+
+on:
+  push:
+    branches: [ "main", "dev" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+    
+    - name: Set up Python 3.10
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.10"
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-asyncio pytest-cov locust fastapi httpx pydantic
+        pip install spacy
+        # Usually need to download a spacy model, e.g., python -m spacy download en_core_web_sm
+        # In this mocked setup we skip it or mock it.
+        
+    - name: Run Unit & Integration Tests (Coverage)
+      run: |
+        pytest tests/unit/ tests/integration/ --cov=tests --cov-report=xml
+        
+    - name: Run System / E2E Tests
+      run: |
+        pytest tests/system/
+        
+    - name: Run AI Quality & Breakage Metrics
+      run: |
+        pytest tests/ai/
+        
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v3
+      env:
+        CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}

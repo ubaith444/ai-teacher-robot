@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Zoro Robot | Webcam Attendance</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.5);
+            --accent: #10b981;
+            --bg: #0f172a;
+            --card-bg: rgba(30, 41, 59, 0.7);
+            --text-main: #f8fafc;
+            --text-dim: #94a3b8;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Outfit', sans-serif;
+        }
+
+        body {
+            background: var(--bg);
+            background-image: 
+                radial-gradient(circle at 20% 20%, rgba(99, 102, 241, 0.15), transparent 40%),
+                radial-gradient(circle at 80% 80%, rgba(16, 185, 129, 0.1), transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border-radius: 1.5rem;
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 2rem;
+            width: 100%;
+            max-width: 800px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
+
+        header {
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(to right, #818cf8, #34d399);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+        }
+
+        /* ── Login Section ── */
+        #login-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+
+        input {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            padding: 0.75rem 1rem;
+            border-radius: 0.75rem;
+            color: white;
+            outline: none;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.75rem;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 20px var(--primary-glow);
+            transform: translateY(-2px);
+        }
+
+        /* ── Attendance Section ── */
+        #attendance-section {
+            display: none;
+            flex-direction: column;
+            gap: 2rem;
+        }
+
+        .camera-container {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 16/9;
+            background: black;
+            border-radius: 1rem;
+            overflow: hidden;
+            border: 2px solid rgba(255,255,255,0.05);
+        }
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transform: scaleX(-1); /* Mirror view */
+        }
+
+        #overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            border: 2px solid var(--primary);
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .scan-controls {
+            display: flex;
+            justify-content: center;
+            gap: 1rem;
+        }
+
+        .btn-start { background: var(--accent); color: white; }
+        .btn-stop { background: #ef4444; color: white; }
+
+        .results-box {
+            background: rgba(0,0,0,0.3);
+            border-radius: 1rem;
+            padding: 1rem;
+            height: 200px;
+            overflow-y: auto;
+            font-family: monospace;
+            border: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .result-entry {
+            padding: 0.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .status-present { color: #4ade80; }
+        .status-late { color: #facc15; }
+        .status-unknown { color: #94a3b8; }
+
+        /* ── Loading Overlay ── */
+        .loading-dots:after {
+            content: ' .';
+            animation: dots 1s steps(5, end) infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: ' .'; }
+            40% { content: ' . .'; }
+            60% { content: ' . . .'; }
+            80%, 100% { content: ' . . . .'; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <header>
+            <div class="logo">ZORO ATTENDANCE</div>
+            <div class="subtitle">Laptop Webcam Integration Mode</div>
+        </header>
+
+        <!-- Step 1: Login -->
+        <div id="login-section">
+            <h3 style="text-align: center; margin-bottom: 1rem;">Admin Authentication</h3>
+            <input type="text" id="username" placeholder="Username" value="admin">
+            <input type="password" id="password" placeholder="Password" value="admin123">
+            <button class="btn-primary" onclick="login()">Enter Command Center</button>
+            <div id="login-error" style="color: #ef4444; font-size: 0.8rem; text-align: center; margin-top: 0.5rem;"></div>
+        </div>
+
+        <!-- Step 2: Attendance Control -->
+        <div id="attendance-section">
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <input type="text" id="class-section" placeholder="Class Section (e.g. 10-A)" value="10-A" style="flex:1">
+                <button class="btn-primary" onclick="startSession()">Start New Session</button>
+            </div>
+
+            <div class="camera-container">
+                <video id="webcam" autoplay playsinline></video>
+                <div id="overlay"></div>
+            </div>
+
+            <div class="scan-controls">
+                <button id="scan-toggle" class="btn-start" onclick="toggleScanning()" disabled>Enable Webcam Scanning</button>
+                <button class="btn-stop" onclick="stopSession()">Stop Session</button>
+            </div>
+
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-dim);">
+                <div id="status-text">Status: Ready</div>
+                <div id="scan-count">Scans: 0</div>
+            </div>
+
+            <div class="results-box" id="results">
+                <div style="text-align: center; color: var(--text-dim); margin-top: 4rem;">Waiting for scans...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let token = null;
+        let isScanning = false;
+        let scanInterval = null;
+        let scanCount = 0;
+
+        const video = document.getElementById('webcam');
+        const canvas = document.createElement('canvas');
+        const resultsEl = document.getElementById('results');
+
+        async function login() {
+            const u = document.getElementById('username').value;
+            const p = document.getElementById('password').value;
+            
+            try {
+                const formData = new URLSearchParams();
+                formData.append('username', u);
+                formData.append('password', p);
+
+                const resp = await fetch('/auth/token', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: formData
+                });
+
+                if (!resp.ok) throw new Error("Invalid credentials");
+                
+                const data = await resp.json();
+                token = data.access_token;
+                
+                document.getElementById('login-section').style.display = 'none';
+                document.getElementById('attendance-section').style.display = 'flex';
+                initCamera();
+            } catch (e) {
+                document.getElementById('login-error').innerText = e.message;
+            }
+        }
+
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+                video.srcObject = stream;
+                document.getElementById('scan-toggle').disabled = false;
+            } catch (e) {
+                alert("Camera access denied or not found.");
+            }
+        }
+
+        async function startSession() {
+            const section = document.getElementById('class-section').value;
+            if (!section) return alert("Enter class section");
+
+            try {
+                const resp = await fetch('/robot/start', {
+                    method: 'POST',
+                    headers: { 
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ class_section: section })
+                });
+
+                const data = await resp.json();
+                if (resp.ok) {
+                    addLog(`Session started: ${data.session_id}`);
+                    document.getElementById('status-text').innerText = "Status: Scanning Ready";
+                } else {
+                    alert(data.detail);
+                }
+            } catch (e) {
+                alert("Failed to start session: " + e.message);
+            }
+        }
+
+        function toggleScanning() {
+            if (isScanning) {
+                clearInterval(scanInterval);
+                isScanning = false;
+                document.getElementById('scan-toggle').innerText = "Enable Webcam Scanning";
+                document.getElementById('scan-toggle').className = "btn-start";
+                document.getElementById('overlay').style.opacity = 0;
+            } else {
+                isScanning = true;
+                document.getElementById('scan-toggle').innerText = "Pause Scanning";
+                document.getElementById('scan-toggle').className = "btn-stop";
+                document.getElementById('overlay').style.opacity = 1;
+                scanInterval = setInterval(captureAndScan, 2500); // Scan every 2.5 seconds
+            }
+        }
+
+        async function captureAndScan() {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(video, 0, 0);
+
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append('face_image', blob, 'frame.jpg');
+
+                try {
+                    const resp = await fetch('/robot/scan', {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: formData
+                    });
+
+                    const data = await resp.json();
+                    scanCount++;
+                    document.getElementById('scan-count').innerText = `Scans: ${scanCount}`;
+
+                    if (data.results && data.results.length > 0) {
+                        data.results.forEach(res => {
+                            addResult(res);
+                        });
+                    }
+                } catch (e) {
+                    console.error("Scan error", e);
+                }
+            }, 'image/jpeg', 0.8);
+        }
+
+        function addResult(res) {
+            if (resultsEl.innerHTML.includes("Waiting for scans")) resultsEl.innerHTML = "";
+            
+            const entry = document.createElement('div');
+            entry.className = 'result-entry';
+            const time = new Date().toLocaleTimeString();
+            
+            let statusHtml = "";
+            if (res.status === 'present') statusHtml = `<span class="status-present">PRESENT</span>`;
+            else if (res.status === 'late') statusHtml = `<span class="status-late">LATE</span>`;
+            else if (res.status === 'already_marked') statusHtml = `<span style="color: var(--text-dim)">ALREADY MARKED</span>`;
+            else statusHtml = `<span class="status-unknown">UNKNOWN</span>`;
+
+            entry.innerHTML = `
+                <span>[${time}] ${res.student_name || 'Anonymous'}</span>
+                ${statusHtml}
+            `;
+            resultsEl.prepend(entry);
+        }
+
+        function addLog(msg) {
+            const entry = document.createElement('div');
+            entry.className = 'result-entry';
+            entry.innerHTML = `<span style="color: var(--primary)">[SYSTEM] ${msg}</span>`;
+            resultsEl.prepend(entry);
+        }
+
+        async function stopSession() {
+            if (isScanning) toggleScanning();
+            
+            try {
+                const resp = await fetch('/robot/stop', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (resp.ok) {
+                    addLog("Session completed and closed.");
+                    document.getElementById('status-text').innerText = "Status: Idle";
+                }
+            } catch (e) {
+                console.error("Stop error", e);
+            }
+        }
+    </script>
+</body>
+</html>
+
